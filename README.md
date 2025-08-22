@@ -1,16 +1,13 @@
-# couple_log
+## [커플로그] - 커플 여행 기록 어플 
 
-A new Flutter project.
+### 기능
+1. 커플 연동
+2. 커플 여행 기록 (날짜, 위치, 사진과 글/블로그 형식으로 배치 자유롭게)
+3. 여행 기록 카드 형식으로 보기 or 지도로 보기
+4. (부가) 기념일 및 버킷 리스트 만들기
 
-## Getting Started
-
-This project is a starting point for a Flutter application.
-
-A few resources to get you started if this is your first Flutter project:
-
-- [Lab: Write your first Flutter app](https://docs.flutter.dev/get-started/codelab)
-- [Cookbook: Useful Flutter samples](https://docs.flutter.dev/cookbook)
-
-For help getting started with Flutter development, view the
-[online documentation](https://docs.flutter.dev/), which offers tutorials,
-samples, guidance on mobile development, and a full API reference.
+### 백엔드 개발 시 주요 사항
+글 작성 시 색상, 볼드, 이미지가 사용자 설정에 맞게 들어가야 하기에
+jsonEncode()를 토해 하나의 문자열로 변환후 백엔드 API로 전송해야 함.
+백에서는 그대로 저장하면 된다.
+Quill 은 Delta JSON 데이터를 

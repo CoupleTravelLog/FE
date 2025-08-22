@@ -2,6 +2,8 @@ import 'package:flutter/material.dart';
 import 'package:couple_log/presentation/onboarding/screens/splash_screen.dart'; // 스플래시 화면 임포트
 import 'package:couple_log/core/constants/app_colors.dart'; // 색상 상수 임포트
 // import 'package:couple_log/presentation/my_page/screens/contact_feedback_screen.dart'; // 추가
+import 'package:flutter_localizations/flutter_localizations.dart';
+import 'package:flutter_quill/flutter_quill.dart';
 
 
 void main() {
@@ -26,6 +28,18 @@ class MyApp extends StatelessWidget {
         ),
         // 다른 테마 설정들을 여기에 추가할 수 있습니다.
       ),
+      // 언어 설정에 따라 텍스트 및 리소스를 해당 언어로 동적 변경 필요
+      localizationsDelegates: [
+        GlobalMaterialLocalizations.delegate,
+        GlobalWidgetsLocalizations.delegate,
+        GlobalCupertinoLocalizations.delegate,
+        FlutterQuillLocalizations.delegate,
+      ],
+      supportedLocales: const [
+        Locale('en', 'US'),
+        Locale('ko', 'KR'),
+      ],
+
       home: const SplashScreen(), // 앱 시작 시 스플래시 화면을 보여줍니다.
       debugShowCheckedModeBanner: false, // 디버그 배너 숨김
     );
