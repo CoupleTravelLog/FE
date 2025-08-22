@@ -94,8 +94,7 @@ class _CreateTravelLogScreenState extends State<CreateTravelLogScreen> {
       return;
     }
 
-    // ⚠️ 지금은 이미지가 로컬 경로로 저장됩니다.
-    // 나중에 서버 업로드를 붙일 땐, Delta를 순회하며 로컬 경로 -> 서버 URL로 치환하면 됩니다.
+    // 현재는 이미지가 로컬 경로로 저장됩니다.
     final contentAsJson = _quillController.document.toDelta().toJson();
     final String contentString = jsonEncode(contentAsJson);
 
@@ -117,7 +116,6 @@ class _CreateTravelLogScreenState extends State<CreateTravelLogScreen> {
   }
 
   Future<bool> _confirmExitIfEdited() async {
-    // 내용이 비어있지 않다면 확인 다이얼로그
     final hasContent = _quillController.document.toPlainText().trim().isNotEmpty ||
         _titleController.text.trim().isNotEmpty;
     if (!hasContent) return true;
@@ -138,8 +136,18 @@ class _CreateTravelLogScreenState extends State<CreateTravelLogScreen> {
 
   @override
   Widget build(BuildContext context) {
-    return WillPopScope(
-      onWillPop: _confirmExitIfEdited,
+    return PopScope<Object?>(
+      canPop: false, // 뒤로가기 제스처를 막고 우리가 직접 제어
+      onPopInvokedWithResult: (didPop, result) {
+        if (didPop) return; // 이미 pop 됐으면 아무 것도 안 함
+
+        // 콜백은 sync여서, 비동기 확인 다이얼로그는 microtask로 분리
+        Future<void>.microtask(() async {
+          if (await _confirmExitIfEdited()) {
+            if (context.mounted) Navigator.pop(context); // 확인 시 실제로 pop
+          }
+        });
+      },
       child: Scaffold(
         backgroundColor: AppColors.softCreamBeige,
         appBar: AppBar(
@@ -152,7 +160,6 @@ class _CreateTravelLogScreenState extends State<CreateTravelLogScreen> {
             icon: const Icon(Icons.close),
             onPressed: () async {
               if (await _confirmExitIfEdited()) {
-                // 취소(나가기)
                 if (context.mounted) Navigator.pop(context);
               }
             },
@@ -168,176 +175,172 @@ class _CreateTravelLogScreenState extends State<CreateTravelLogScreen> {
           ],
         ),
         body: Column(
-            children: [
-        Expanded(
-        child: Padding(
-        padding: const EdgeInsets.all(20.0),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Text('여행 제목', style: AppTextStyles.inputLabel),
-            const SizedBox(height: 8),
-            TextFormField(
-              controller: _titleController,
-              style: AppTextStyles.regularText,
-              decoration: InputDecoration(
-                hintText: '기억에 남을 여행의 제목을 입력해주세요',
-                hintStyle: AppTextStyles.smallText.copyWith(color: AppColors.lightGrey),
-                filled: true,
-                fillColor: AppColors.white,
-                border: OutlineInputBorder(
-                  borderRadius: BorderRadius.circular(12),
-                  borderSide: BorderSide.none,
-                ),
-                contentPadding:
-                const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
-              ),
-              maxLines: 1,
-            ),
-            const SizedBox(height: 25),
-            Text('여행 기간', style: AppTextStyles.inputLabel),
-            const SizedBox(height: 8),
-            GestureDetector(
-              onTap: () => _selectDateRange(context),
-              child: Container(
-                padding:
-                const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
-                decoration: BoxDecoration(
-                  color: AppColors.white,
-                  borderRadius: BorderRadius.circular(12),
-                  border: Border.all(color: AppColors.urbanGrey),
-                ),
-                child: Row(
-                  children: [
-                    const Icon(Icons.calendar_today,
-                        size: 20, color: AppColors.lightGrey),
-                    const SizedBox(width: 10),
-                    Expanded(
-                      child: Text(
-                        _startDate == null || _endDate == null
-                            ? '여행 시작일 ~ 여행 종료일'
-                            : '${_startDate!.toLocal().toString().split(' ')[0]} ~ ${_endDate!.toLocal().toString().split(' ')[0]}',
-                        style: _startDate == null
-                            ? AppTextStyles.smallText
-                            .copyWith(color: AppColors.lightGrey)
-                            : AppTextStyles.regularText,
-                      ),
-                    ),
-                    const Icon(Icons.arrow_drop_down,
-                        color: AppColors.lightGrey),
-                  ],
-                ),
-              ),
-            ),
-            const SizedBox(height: 25),
-            Text('여행 기록', style: AppTextStyles.inputLabel),
-            const SizedBox(height: 15),
-
-            // ✅ Toolbar: 서버 없이 로컬 경로 삽입
-            QuillSimpleToolbar(
-              config: QuillSimpleToolbarConfig(
-                multiRowsDisplay: true,
-                showFontFamily: false, // 폰트 패밀리 버튼
-                showFontSize: false, // 폰트 크기 버튼
-                showBoldButton: true, // 볼드 버튼
-                showItalicButton: true, // 이탤릭 버튼
-                showUnderLineButton: true, // 밑줄 버튼
-                showStrikeThrough: true, // 취소선 버튼
-                showSmallButton: false, // 작은 글씨 버튼
-                showInlineCode: false, // 인라인 코드 버튼
-                showColorButton: true, // 색상 버튼
-                showBackgroundColorButton: false, // 배경색 버튼
-                showClearFormat: false, // 포맷 지우기 버튼
-                showAlignmentButtons: false, // 정렬 버튼
-                showHeaderStyle: false, // 헤더 스타일 버튼
-                showListNumbers: false, // 숫자 목록 버튼
-                showListBullets: false, // 점 목록 버튼
-                showListCheck: false, // 체크리스트 버튼
-                showCodeBlock: false, // 코드 블록 버튼
-                showQuote: false, // 인용문 버튼
-                showIndent: false, // 들여쓰기/내어쓰기 버튼
-                showLink: false, // 링크 버튼
-                showUndo: false, // 실행 취소 버튼
-                showRedo: false, // 다시 실행 버튼
-                showSearchButton: false, // 검색 버튼
-                showSubscript: false, // 아래첨자
-                showSuperscript: false, // 위첨자
-                showClipboardCut: false, // 잘라내기
-                showClipboardCopy: false, // 복사
-                showClipboardPaste: false, // 붙여넣기
-                embedButtons: FlutterQuillEmbeds.toolbarButtons(
-                  imageButtonOptions: QuillToolbarImageButtonOptions(
-                    imageButtonConfig: QuillToolbarImageConfig(
-                      // 1) 갤러리에서 선택 → "로컬 경로" 반환
-                      onRequestPickImage: (context) async {
-                        final path = await _pickLocalImagePath();
-                        return path; // null이면 삽입 취소
-                      },
-                      // 2) 반환된 "로컬 경로"를 문서에 삽입
-                      onImageInsertCallback: (imagePath, controller) async {
-                        if (imagePath.isEmpty) return;
-                        controller.insertImageBlock(
-                          imageSource: imagePath,
-                        );
-                        // 삽입 직후 포커스 복구
-                        WidgetsBinding.instance.addPostFrameCallback((_) {
-                          _editorFocusNode.requestFocus();
-                        });
-                      },
-                    ),
-                  ),
-                ),
-              ),
-              controller: _quillController,
-            ),
-
-            const SizedBox(height: 10),
-
-            // ✅ Editor: 로컬 파일 경로도 보이도록 imageProviderBuilder 설정
             Expanded(
-              child: Container(
-                padding: const EdgeInsets.all(12),
-                decoration: BoxDecoration(
-                  color: AppColors.white,
-                  borderRadius: BorderRadius.circular(12),
-                  border: Border.all(color: AppColors.urbanGrey),
-                ),
-                child: QuillEditor(
-                  controller: _quillController,
-                  focusNode: _editorFocusNode,
-                  scrollController: _editorScrollController,
-                  config: QuillEditorConfig(
-                    placeholder: "여행 내용을 입력하세요 . . .",
-                    padding: EdgeInsets.zero,
-                    // [fix] 이미지 삽입 시 레이아웃 안저성 필요
-                    autoFocus: true,
-                    scrollable: true,
-                    expands: false,
-                    embedBuilders: [
-                      ...FlutterQuillEmbeds.editorBuilders(
-                        imageEmbedConfig: QuillEditorImageEmbedConfig(
-                          // 로컬 경로/네트워크 URL 모두 지원
-                          imageProviderBuilder: (context, url) {
-                            if (url.startsWith('http') || url.startsWith('https')) {
-                              return NetworkImage(url);
-                            }
-                            // file:// 형태가 아니더라도 FileImage에 경로 전달 가능
-                            return FileImage(File(url));
-                          },
+              child: Padding(
+                padding: const EdgeInsets.all(20.0),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text('여행 제목', style: AppTextStyles.inputLabel),
+                    const SizedBox(height: 8),
+                    TextFormField(
+                      controller: _titleController,
+                      style: AppTextStyles.regularText,
+                      decoration: InputDecoration(
+                        hintText: '기억에 남을 여행의 제목을 입력해주세요',
+                        hintStyle: AppTextStyles.smallText.copyWith(color: AppColors.lightGrey),
+                        filled: true,
+                        fillColor: AppColors.white,
+                        border: OutlineInputBorder(
+                          borderRadius: BorderRadius.circular(12),
+                          borderSide: BorderSide.none,
+                        ),
+                        contentPadding:
+                        const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+                      ),
+                      maxLines: 1,
+                    ),
+                    const SizedBox(height: 25),
+                    Text('여행 기간', style: AppTextStyles.inputLabel),
+                    const SizedBox(height: 8),
+                    GestureDetector(
+                      onTap: () => _selectDateRange(context),
+                      child: Container(
+                        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+                        decoration: BoxDecoration(
+                          color: AppColors.white,
+                          borderRadius: BorderRadius.circular(12),
+                          border: Border.all(color: AppColors.urbanGrey),
+                        ),
+                        child: Row(
+                          children: [
+                            const Icon(Icons.calendar_today,
+                                size: 20, color: AppColors.lightGrey),
+                            const SizedBox(width: 10),
+                            Expanded(
+                              child: Text(
+                                _startDate == null || _endDate == null
+                                    ? '여행 시작일 ~ 여행 종료일'
+                                    : '${_startDate!.toLocal().toString().split(' ')[0]} ~ ${_endDate!.toLocal().toString().split(' ')[0]}',
+                                style: _startDate == null
+                                    ? AppTextStyles.smallText
+                                    .copyWith(color: AppColors.lightGrey)
+                                    : AppTextStyles.regularText,
+                              ),
+                            ),
+                            const Icon(Icons.arrow_drop_down, color: AppColors.lightGrey),
+                          ],
                         ),
                       ),
-                    ],
-                  ),
+                    ),
+                    const SizedBox(height: 25),
+                    Text('여행 기록', style: AppTextStyles.inputLabel),
+                    const SizedBox(height: 15),
+
+                    // ✅ Toolbar: 서버 없이 로컬 경로 삽입 (deprecated 제거/이름 수정 반영)
+                    QuillSimpleToolbar(
+                      controller: _quillController,
+                      config: QuillSimpleToolbarConfig(
+                        multiRowsDisplay: true,
+                        showFontFamily: false,
+                        showFontSize: false,
+                        showBoldButton: true,
+                        showItalicButton: true,
+                        //showUnderlineButton: false, // ← 이름 수정 (showUnderLineButton X)
+                        showStrikeThrough: false,
+                        showSmallButton: false,
+                        showInlineCode: false,
+                        showColorButton: false,
+                        showBackgroundColorButton: false,
+                        showClearFormat: false,
+                        showAlignmentButtons: false,
+                        showHeaderStyle: false,
+                        showListNumbers: false,
+                        showListBullets: false,
+                        showListCheck: false,
+                        showCodeBlock: false,
+                        showQuote: false,
+                        showIndent: false,
+                        showLink: false,
+                        showUndo: false,
+                        showRedo: false,
+                        showSearchButton: false,
+                        showSubscript: false,
+                        showSuperscript: false,
+                        // showClipboardCut/Copy/Paste → 제거 (deprecated/미지원)
+                        embedButtons: FlutterQuillEmbeds.toolbarButtons(
+                          imageButtonOptions: QuillToolbarImageButtonOptions(
+                            imageButtonConfig: QuillToolbarImageConfig(
+                              onRequestPickImage: (context) async {
+                                final path = await _pickLocalImagePath();
+                                return path; // null이면 삽입 취소
+                              },
+                              onImageInsertCallback: (imagePath, controller) async {
+                                if (imagePath.isEmpty) return;
+
+                                // 현재 커서 위치에 이미지 블록 삽입
+                                final index = controller.selection.baseOffset;
+                                controller.replaceText(
+                                  index,
+                                  0,
+                                  BlockEmbed.image(imagePath),                         // ✅ 새 방식
+                                  TextSelection.collapsed(offset: index + 1),          // 커서를 이미지 뒤로 이동
+                                );
+
+                                // 포커스 튐 방지
+                                WidgetsBinding.instance.addPostFrameCallback((_) {
+                                  _editorFocusNode.requestFocus();
+                                });
+                              },
+                            ),
+                          ),
+                        ),
+                      ),
+                    ),
+
+                    const SizedBox(height: 10),
+
+                    // ✅ Editor: 로컬 파일 경로도 보이도록 imageProviderBuilder 유지
+                    Expanded(
+                      child: Container(
+                        padding: const EdgeInsets.all(12),
+                        decoration: BoxDecoration(
+                          color: AppColors.white,
+                          borderRadius: BorderRadius.circular(12),
+                          border: Border.all(color: AppColors.urbanGrey),
+                        ),
+                        child: QuillEditor(
+                          controller: _quillController,
+                          focusNode: _editorFocusNode,
+                          scrollController: _editorScrollController,
+                          config: QuillEditorConfig(
+                            placeholder: "여행 내용을 입력하세요 . . .",
+                            padding: EdgeInsets.zero,
+                            autoFocus: true,
+                            embedBuilders: [
+                              ...FlutterQuillEmbeds.editorBuilders(
+                                imageEmbedConfig: QuillEditorImageEmbedConfig(
+                                  imageProviderBuilder: (context, url) {
+                                    if (url.startsWith('http')) {
+                                      return NetworkImage(url);
+                                    }
+                                    return FileImage(File(url));
+                                  },
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                      ),
+                    ),
+                  ],
                 ),
               ),
             ),
           ],
         ),
       ),
-    ),
-    ],
-    ),
-    ),
     );
   }
 }
